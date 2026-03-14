@@ -4,9 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.aspectj.lang.annotation.AfterReturning;
-
-import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -17,5 +14,6 @@ public class LoginResponse {
     private String username;
     private String email;
     private Double balance;
+    private String token;
     private String message;
 }

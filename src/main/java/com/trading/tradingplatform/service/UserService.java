@@ -6,6 +6,7 @@ import com.trading.tradingplatform.dto.UserRegistrationRequest;
 import com.trading.tradingplatform.dto.UserResponseDTO;
 import com.trading.tradingplatform.entity.User;
 import com.trading.tradingplatform.repository.UserRepository;
+import com.trading.tradingplatform.security.JwtService;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     /**
      * Registers a new user in the system
@@ -81,11 +83,15 @@ public class UserService {
         if(!passwordEncoder.matches(request.getPassword(), user.getPassword())){
             throw new RuntimeException("Invalid login credentials");
         }
+
+        String token = jwtService.generateToken(user.getEmail());
+
         return LoginResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .balance(user.getBalance())
+                .token(token)
                 .message("Login successful")
                 .build();
     }
