@@ -4,6 +4,7 @@ package com.trading.tradingplatform.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,7 +30,7 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private Double balance;
+    private BigDecimal balance;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
