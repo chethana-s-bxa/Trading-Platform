@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getStocks } from "../services/stocksService";
-import { connectMarketSocket } from "../websocket/websocketService";
+import { connectMarketSocket, disconnectMarketSocket } from "../websocket/websocketService";
+import TradeForm from "./TradeForm";
 
 function StockTable() {
 
@@ -10,7 +11,12 @@ function StockTable() {
 
     fetchStocks();
 
+    // Connect WebSocket
     connectMarketSocket(handlePriceUpdate);
+
+    return () => {
+      disconnectMarketSocket();
+    };
 
   }, []);
 
@@ -54,6 +60,7 @@ function StockTable() {
             <th>Symbol</th>
             <th>Company</th>
             <th>Price</th>
+            <th>Trade</th>
           </tr>
         </thead>
 
@@ -65,6 +72,9 @@ function StockTable() {
               <td>{stock.symbol}</td>
               <td>{stock.companyName}</td>
               <td>{stock.price}</td>
+              <td>
+                <TradeForm symbol={stock.symbol} />
+              </td>
             </tr>
 
           ))}
