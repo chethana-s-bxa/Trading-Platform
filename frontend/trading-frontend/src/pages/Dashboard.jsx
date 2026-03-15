@@ -3,33 +3,37 @@ import { useNavigate } from "react-router-dom";
 
 function Dashboard() {
 
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  const handleLogout = () => {
+    const handleLogout = () => {
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    localStorage.removeItem("userId");
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        localStorage.removeItem("userId");
 
-    navigate("/login");
+        navigate("/login");
 
-  };
+    };
 
-  return (
+    return (
 
-    <div>
+        <div>
 
-      <h1>Trading Dashboard</h1>
+            <h1>Trading Dashboard</h1>
 
-      <button onClick={handleLogout}>
-        Logout
-      </button>
+            <button onClick={() => navigate("/portfolio")}>
+                Portfolio
+            </button>
 
-      <StockTable />
+            <button onClick={handleLogout}>
+                Logout
+            </button>
 
-    </div>
+            <StockTable />
 
-  );
+        </div>
+
+    );
 
 }
 
