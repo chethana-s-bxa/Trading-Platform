@@ -5,6 +5,7 @@ import com.trading.tradingplatform.entity.PortfolioHolding;
 import com.trading.tradingplatform.entity.User;
 import com.trading.tradingplatform.repository.PortfolioHoldingRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,6 +20,7 @@ import java.util.List;
 public class PortfolioValuationService {
 
     private final PortfolioService portfolioService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * Calculates portfolio value using current stock prices.
@@ -69,5 +71,22 @@ public class PortfolioValuationService {
                 .currentValue(currentValue)
                 .profitLoss(profitLoss)
                 .build();
+    }
+
+    /**
+     * Sends real-time portfolio valuation updates
+     * to the user via WebSocket.
+     *
+     * @param userId user id
+     */
+    public void broadcastPortfolioValue(Long userId) {
+
+        PortfolioValueResponse value =
+                calculatePortfolioValue(userId);
+
+        messagingTemplate.convertAndSend(
+                "/topic/portfolio/" + userId,
+                value
+        );
     }
 }

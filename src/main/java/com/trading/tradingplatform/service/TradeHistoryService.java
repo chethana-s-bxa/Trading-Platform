@@ -25,7 +25,7 @@ public class TradeHistoryService {
 
     private final TradeRepository tradeRepository;
     private final MarketDataPublisher marketDataPublisher;
-
+    private final PortfolioValuationService portfolioValuationService;
 
     public void recordBuyTrade(User user, Stock stock, Integer quantity, BigDecimal pricePerShare) {
 
@@ -201,5 +201,12 @@ public class TradeHistoryService {
          * Broadcast executed trade to WebSocket clients.
          */
         marketDataPublisher.broadcastTrade(message);
+
+        /**
+         * Broadcast updated portfolio valuation
+         * for both buyer and seller.
+         */
+        portfolioValuationService.broadcastPortfolioValue(buyer.getId());
+        portfolioValuationService.broadcastPortfolioValue(seller.getId());
     }
 }
