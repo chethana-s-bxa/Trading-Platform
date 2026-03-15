@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Portfolio from "./pages/Portfolio";
 import TradeHistory from "./pages/TradeHistory";
+import UserOrders from "./pages/UserOrders";
 
 function App() {
 
@@ -36,6 +37,14 @@ function App() {
         element={
           <ProtectedRoute>
             <TradeHistory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/orders"
+        element={
+          <ProtectedRoute>
+            <UserOrders />
           </ProtectedRoute>
         }
       />
