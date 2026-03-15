@@ -67,3 +67,19 @@ export const subscribeOrderBook = (symbol, onMessage) => {
   });
 
 };
+
+export const subscribeTrades = (onMessage) => {
+
+  if (!stompClient || !stompClient.connected) {
+    return;
+  }
+
+  stompClient.subscribe("/topic/trades", (message) => {
+
+    const data = JSON.parse(message.body);
+
+    onMessage(data);
+
+  });
+
+};

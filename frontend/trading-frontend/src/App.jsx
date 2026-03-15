@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Portfolio from "./pages/Portfolio";
+import TradeHistory from "./pages/TradeHistory";
 
 function App() {
 
@@ -26,6 +27,15 @@ function App() {
         element={
           <ProtectedRoute>
             <Portfolio />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <TradeHistory />
           </ProtectedRoute>
         }
       />

@@ -23,3 +23,30 @@ export const cancelOrder = async (orderId) => {
   return response.data;
 
 };
+
+
+export const placeBuyOrder = async (symbol, quantity, price) => {
+
+  const response = await api.post("/orders/buy", {
+    symbol: symbol,
+    orderCategory: "MARKET",
+    price: price,
+    quantity: quantity
+  });
+
+  return response.data;
+
+};
+
+export const placeSellOrder = async (symbol, quantity, price) => {
+
+  const response = await api.post("/orders/sell", {
+    symbol: symbol,
+    orderCategory: "MARKET",
+    price: price,
+    quantity: quantity
+  });
+
+  return response.data;
+
+};
