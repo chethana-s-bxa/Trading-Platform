@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { loginUser } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
 
@@ -22,7 +23,7 @@ function Login() {
       localStorage.setItem("token", response.token);
       localStorage.setItem("username", response.username);
       localStorage.setItem("userId", response.id);
-
+      navigate("/dashboard");
       alert("Login successful");
 
     } catch (error) {
