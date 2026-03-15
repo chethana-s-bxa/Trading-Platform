@@ -35,3 +35,19 @@ export const disconnectMarketSocket = () => {
   }
 
 };
+
+export const subscribePortfolio = (userId, onMessage) => {
+
+  if (!stompClient || !stompClient.connected) {
+    return;
+  }
+
+  stompClient.subscribe(`/topic/portfolio/${userId}`, (message) => {
+
+    const data = JSON.parse(message.body);
+
+    onMessage(data);
+
+  });
+
+};

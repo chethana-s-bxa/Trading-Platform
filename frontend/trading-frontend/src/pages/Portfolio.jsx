@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { getPortfolio, getPortfolioValue } from "../services/portfolioService";
+import { connectMarketSocket, subscribePortfolio } from "../websocket/websocketService";
 
 function Portfolio() {
 
   const [holdings, setHoldings] = useState([]);
   const [portfolioValue, setPortfolioValue] = useState(null);
 
+  const userId = localStorage.getItem("userId");
+
   useEffect(() => {
 
     fetchPortfolio();
+
+    // Connect websocket
+    connectMarketSocket(() => {});
+
+    // Subscribe to portfolio updates
+    subscribePortfolio(userId, handlePortfolioUpdate);
 
   }, []);
 
@@ -27,6 +36,18 @@ function Portfolio() {
       console.error("Error fetching portfolio", error);
 
     }
+
+  };
+
+  const handlePortfolioUpdate = (update) => {
+
+    setHoldings(update.holdings);
+
+    setPortfolioValue({
+      totalInvestment: update.totalInvestment,
+      currentValue: update.currentValue,
+      profitLoss: update.profitLoss
+    });
 
   };
 
