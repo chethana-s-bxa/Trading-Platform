@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { loginUser } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import { loginUser } from "../services/authService";
 
 function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
 
@@ -18,13 +20,11 @@ function Login() {
         password
       });
 
-      console.log("Login Response:", response);
-
       localStorage.setItem("token", response.token);
       localStorage.setItem("username", response.username);
       localStorage.setItem("userId", response.id);
+
       navigate("/dashboard");
-      alert("Login successful");
 
     } catch (error) {
 
@@ -53,7 +53,7 @@ function Login() {
           />
         </div>
 
-        <br/>
+        <br />
 
         <div>
           <label>Password</label>
@@ -65,7 +65,7 @@ function Login() {
           />
         </div>
 
-        <br/>
+        <br />
 
         <button type="submit">Login</button>
 
