@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -13,7 +15,7 @@ public class LoginResponse {
     private Long id;
     private String username;
     private String email;
-    private Double balance;
+    private BigDecimal balance;
     private String token;
     private String message;
 }

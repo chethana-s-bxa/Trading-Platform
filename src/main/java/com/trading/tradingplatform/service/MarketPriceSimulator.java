@@ -3,10 +3,12 @@ package com.trading.tradingplatform.service;
 import com.trading.tradingplatform.entity.Stock;
 import com.trading.tradingplatform.entity.enums.MarketTrend;
 import com.trading.tradingplatform.repository.StockRepository;
+import com.trading.tradingplatform.websocket.MarketDataPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
+import com.trading.tradingplatform.dto.market.MarketPriceUpdateMessage;
+import com.trading.tradingplatform.websocket.MarketDataPublisher;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -20,6 +22,7 @@ public class MarketPriceSimulator {
     private final StockRepository stockRepository;
     private final Random random = new Random();
     private MarketTrend currentTrend = MarketTrend.NEUTRAL;
+    private final MarketDataPublisher marketDataPublisher;
 
     @Scheduled(fixedRate = 5000)
     public void updateMarketPrices() {
@@ -41,7 +44,20 @@ public class MarketPriceSimulator {
             stock.setLastUpdated(LocalDateTime.now());
 
             stockRepository.save(stock);
-        }
+
+            /**
+            * Create WebSocket market price update message.
+            */
+            MarketPriceUpdateMessage message = MarketPriceUpdateMessage.builder()
+                    .symbol(stock.getSymbol())
+                    .price(stock.getPrice())
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            /**
+             * Broadcast the updated price to all connected WebSocket clients.
+             */
+            marketDataPublisher.broadcastPriceUpdate(message);        }
     }
 
     @Scheduled(fixedRate = 60000)

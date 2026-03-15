@@ -11,8 +11,11 @@ import com.trading.tradingplatform.entity.enums.TradeType;
 import com.trading.tradingplatform.repository.OrderRepository;
 import com.trading.tradingplatform.repository.StockRepository;
 import com.trading.tradingplatform.repository.UserRepository;
+import com.trading.tradingplatform.websocket.MarketDataPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.trading.tradingplatform.websocket.MarketDataPublisher;
+import com.trading.tradingplatform.dto.order.OrderBookStreamMessage;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,6 +29,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final TradeHistoryService tradeHistoryService;
     private final PortfolioService portfolioService;
+    private final MarketDataPublisher marketDataPublisher;
 
     public OrderResponse placeBuyOrder(String userName, PlaceOrderRequest request) {
 
@@ -51,7 +55,7 @@ public class OrderService {
 
         // Matching engine will run here (next step)
         matchOrders(stock.getSymbol());
-
+        broadcastOrderBook(stock.getSymbol());
         return mapToResponse(savedOrder);
     }
 
@@ -79,6 +83,7 @@ public class OrderService {
 
         // Trigger matching engine
         matchOrders(stock.getSymbol());
+        broadcastOrderBook(stock.getSymbol());
 
         return mapToResponse(savedOrder);
     }
@@ -186,6 +191,8 @@ public class OrderService {
 
         orderRepository.save(buyOrder);
         orderRepository.save(sellOrder);
+
+        broadcastOrderBook(buyOrder.getStock().getSymbol());
     }
 
     private void updateOrderStatus(Order order) {
@@ -260,5 +267,46 @@ public class OrderService {
         order.setOrderStatus(OrderStatus.CANCELLED);
 
         orderRepository.save(order);
+
+        broadcastOrderBook(order.getStock().getSymbol());
+    }
+
+    /**
+     * Broadcasts the current order book snapshot for a given stock symbol
+     * to WebSocket clients.
+     *
+     * Topic format:
+     * /topic/orderbook/{symbol}
+     */
+    private void broadcastOrderBook(String symbol) {
+
+        OrderBookResponse orderBook = getOrderBook(symbol);
+
+        List<OrderBookStreamMessage.OrderLevel> bids =
+                orderBook.getBuyOrders()
+                        .stream()
+                        .map(order -> new OrderBookStreamMessage.OrderLevel(
+                                order.getPrice(),
+                                order.getRemainingQuantity()
+                        ))
+                        .toList();
+
+        List<OrderBookStreamMessage.OrderLevel> asks =
+                orderBook.getSellOrders()
+                        .stream()
+                        .map(order -> new OrderBookStreamMessage.OrderLevel(
+                                order.getPrice(),
+                                order.getRemainingQuantity()
+                        ))
+                        .toList();
+
+        OrderBookStreamMessage message =
+                OrderBookStreamMessage.builder()
+                        .symbol(symbol)
+                        .bids(bids)
+                        .asks(asks)
+                        .build();
+
+        marketDataPublisher.broadcastOrderBook(message);
     }
 }

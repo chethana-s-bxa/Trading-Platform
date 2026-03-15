@@ -8,11 +8,13 @@ import com.trading.tradingplatform.entity.Trade;
 import com.trading.tradingplatform.entity.User;
 import com.trading.tradingplatform.entity.enums.TradeType;
 import com.trading.tradingplatform.repository.TradeRepository;
+import com.trading.tradingplatform.websocket.MarketDataPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
+import com.trading.tradingplatform.dto.trade.TradeStreamMessage;
+import com.trading.tradingplatform.websocket.MarketDataPublisher;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,6 +24,8 @@ import java.util.List;
 public class TradeHistoryService {
 
     private final TradeRepository tradeRepository;
+    private final MarketDataPublisher marketDataPublisher;
+
 
     public void recordBuyTrade(User user, Stock stock, Integer quantity, BigDecimal pricePerShare) {
 
@@ -136,6 +140,15 @@ public class TradeHistoryService {
         );
     }
 
+    /**
+     * Records a matched trade between a buyer and seller.
+     * Two trade records are stored:
+     * - BUY trade for buyer
+     * - SELL trade for seller
+     *
+     * After saving both records, the trade execution
+     * is broadcast to WebSocket clients.
+     */
     public void recordMatchedTrade(
             User buyer,
             User seller,
@@ -171,5 +184,22 @@ public class TradeHistoryService {
 
         tradeRepository.save(buyTrade);
         tradeRepository.save(sellTrade);
+
+        /**
+         * Create trade stream message for WebSocket broadcast.
+         */
+        TradeStreamMessage message = TradeStreamMessage.builder()
+                .symbol(stock.getSymbol())
+                .price(pricePerShare)
+                .quantity(quantity)
+                .buyerId(buyer.getId())
+                .sellerId(seller.getId())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        /**
+         * Broadcast executed trade to WebSocket clients.
+         */
+        marketDataPublisher.broadcastTrade(message);
     }
 }
