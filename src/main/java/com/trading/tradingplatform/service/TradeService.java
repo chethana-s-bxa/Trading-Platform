@@ -23,11 +23,12 @@ public class TradeService {
     private final UserRepository userRepository;
     private final StockRepository stockRepository;
     private final PortfolioHoldingRepository portfolioHoldingRepository;
+    private final TradeHistoryService tradeHistoryService;
 
     @Transactional
     public TradeResponse buyStock(BuyStockRequest request) {
 
-        // 1️⃣ Get authenticated user
+        //  Get authenticated user
         String username = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
@@ -36,33 +37,33 @@ public class TradeService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2️⃣ Find stock
+        //  Find stock
         Stock stock = stockRepository.findBySymbol(request.getSymbol())
                 .orElseThrow(() -> new RuntimeException("Stock not found"));
 
-        // 3️⃣ Get stock price
+        //  Get stock price
         BigDecimal stockPrice = stock.getPrice();
 
-        // 4️⃣ Calculate total cost
+        //  Calculate total cost
         BigDecimal totalCost = stockPrice.multiply(BigDecimal.valueOf(request.getQuantity()));
 
-        // 5️⃣ Check user balance
+        //  Check user balance
         if (user.getBalance().compareTo( totalCost) < 0) {
             throw new RuntimeException("Insufficient balance");
         }
 
-        // 6️⃣ Deduct balance
+        //  Deduct balance
         user.setBalance(user.getBalance().subtract(totalCost));
         userRepository.save(user);
 
-        // 7️⃣ Check if user already owns this stock
+        //  Check if user already owns this stock
         PortfolioHolding holding = portfolioHoldingRepository
                 .findByUserIdAndStockSymbol(user.getId(), stock.getSymbol())
                 .orElse(null);
 
         if (holding == null) {
 
-            // 8️⃣ Create new portfolio holding
+            //  Create new portfolio holding
             holding = new PortfolioHolding();
             holding.setUser(user);
             holding.setStock(stock);
@@ -71,7 +72,7 @@ public class TradeService {
 
         } else {
 
-            // 9️⃣ Update existing holding using weighted average
+            //  Update existing holding using weighted average
             int oldQuantity = holding.getQuantity();
             BigDecimal oldPrice = holding.getAveragePrice();
 
@@ -88,7 +89,14 @@ public class TradeService {
 
         portfolioHoldingRepository.save(holding);
 
-        // 🔟 Return response
+        tradeHistoryService.recordBuyTrade(
+                user,
+                stock,
+                request.getQuantity(),
+                stockPrice
+        );
+
+        //  Return response
         return new TradeResponse(
                 "Stock purchased successfully",
                 stock.getSymbol(),
@@ -147,6 +155,13 @@ public class TradeService {
         // 8. Add money to user balance
         user.setBalance(user.getBalance().add(totalAmount));
         userRepository.save(user);
+
+        tradeHistoryService.recordSellTrade(
+                user,
+                stock,
+                request.getQuantity(),
+                stockPrice
+        );
 
         // 9. Return response
         return new TradeResponse(
