@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -99,5 +101,68 @@ public class PortfolioService {
         Integer totalShares = oldQuantity + newQuantity;
 
         return totalCost.divide(BigDecimal.valueOf(totalShares), 2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    public void updatePortfolioAfterBuy(
+            User user,
+            Stock stock,
+            Integer quantity,
+            BigDecimal price
+    ) {
+
+        PortfolioHolding holding = portfolioHoldingRepository
+                .findByUserIdAndStockSymbol(user.getId(), stock.getSymbol())
+                .orElse(null);
+
+        if (holding == null) {
+
+            holding = PortfolioHolding.builder()
+                    .user(user)
+                    .stock(stock)
+                    .quantity(quantity)
+                    .averagePrice(price)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+        } else {
+
+            int newQuantity = holding.getQuantity() + quantity;
+
+            BigDecimal totalCost =
+                    holding.getAveragePrice()
+                            .multiply(BigDecimal.valueOf(holding.getQuantity()))
+                            .add(price.multiply(BigDecimal.valueOf(quantity)));
+
+            BigDecimal newAveragePrice =
+                    totalCost.divide(BigDecimal.valueOf(newQuantity), RoundingMode.HALF_UP);
+
+            holding.setQuantity(newQuantity);
+            holding.setAveragePrice(newAveragePrice);
+            holding.setUpdatedAt(LocalDateTime.now());
+        }
+
+        portfolioHoldingRepository.save(holding);
+    }
+
+    public void updatePortfolioAfterSell(
+            User user,
+            Stock stock,
+            Integer quantity
+    ) {
+
+        PortfolioHolding holding = portfolioHoldingRepository
+                .findByUserIdAndStockSymbol(user.getId(), stock.getSymbol())
+                .orElseThrow(() -> new RuntimeException("Stock not owned"));
+
+        int newQuantity = holding.getQuantity() - quantity;
+
+        if (newQuantity == 0) {
+            portfolioHoldingRepository.delete(holding);
+        } else {
+            holding.setQuantity(newQuantity);
+            holding.setUpdatedAt(LocalDateTime.now());
+            portfolioHoldingRepository.save(holding);
+        }
     }
 }

@@ -135,4 +135,41 @@ public class TradeHistoryService {
                 netProfitOrLoss
         );
     }
+
+    public void recordMatchedTrade(
+            User buyer,
+            User seller,
+            Stock stock,
+            Integer quantity,
+            BigDecimal pricePerShare
+    ) {
+
+        BigDecimal totalAmount =
+                pricePerShare.multiply(BigDecimal.valueOf(quantity));
+
+        // BUY trade record
+        Trade buyTrade = Trade.builder()
+                .user(buyer)
+                .stock(stock)
+                .tradeType(TradeType.BUY)
+                .quantity(quantity)
+                .pricePerShare(pricePerShare)
+                .totalAmount(totalAmount)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        // SELL trade record
+        Trade sellTrade = Trade.builder()
+                .user(seller)
+                .stock(stock)
+                .tradeType(TradeType.SELL)
+                .quantity(quantity)
+                .pricePerShare(pricePerShare)
+                .totalAmount(totalAmount)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        tradeRepository.save(buyTrade);
+        tradeRepository.save(sellTrade);
+    }
 }
