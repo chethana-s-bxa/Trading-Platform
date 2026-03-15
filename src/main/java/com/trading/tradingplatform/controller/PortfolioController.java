@@ -2,10 +2,12 @@ package com.trading.tradingplatform.controller;
 
 import com.trading.tradingplatform.dto.PortfolioHoldingResponse;
 import com.trading.tradingplatform.dto.PortfolioResponse;
+import com.trading.tradingplatform.dto.PortfolioValueResponse;
 import com.trading.tradingplatform.entity.PortfolioHolding;
 import com.trading.tradingplatform.entity.User;
 import com.trading.tradingplatform.repository.UserRepository;
 import com.trading.tradingplatform.service.PortfolioService;
+import com.trading.tradingplatform.service.PortfolioValuationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,7 @@ public class PortfolioController {
 
     private final PortfolioService portfolioService;
     private final UserRepository userRepository;
+    private final PortfolioValuationService portfolioValuationService;
 
     /**
      * Returns the portfolio of the currently logged-in user.
@@ -59,5 +62,20 @@ public class PortfolioController {
                 .userId(user.getId())
                 .holdings(holdingResponses)
                 .build();
+    }
+
+    /**
+     * Returns the real-time portfolio valuation
+     * including investment, current value and profit/loss.
+     */
+    @GetMapping("/value")
+    public PortfolioValueResponse getPortfolioValue(Authentication authentication) {
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return portfolioValuationService.calculatePortfolioValue(user.getId());
     }
 }
