@@ -3,7 +3,7 @@ import { getStocks } from "../services/stocksService";
 import { connectMarketSocket, disconnectMarketSocket } from "../websocket/websocketService";
 import TradeForm from "./TradeForm";
 
-function StockTable() {
+function StockTable({ setSelectedStock }) {
 
   const [stocks, setStocks] = useState([]);
 
@@ -11,7 +11,6 @@ function StockTable() {
 
     fetchStocks();
 
-    // Connect WebSocket
     connectMarketSocket(handlePriceUpdate);
 
     return () => {
@@ -68,13 +67,20 @@ function StockTable() {
 
           {stocks.map((stock) => (
 
-            <tr key={stock.symbol}>
+            <tr
+              key={stock.symbol}
+              onClick={() => setSelectedStock(stock.symbol)}
+              style={{ cursor: "pointer" }}
+            >
+
               <td>{stock.symbol}</td>
               <td>{stock.companyName}</td>
               <td>{stock.price}</td>
-              <td>
+
+              <td onClick={(e) => e.stopPropagation()}>
                 <TradeForm symbol={stock.symbol} />
               </td>
+
             </tr>
 
           ))}

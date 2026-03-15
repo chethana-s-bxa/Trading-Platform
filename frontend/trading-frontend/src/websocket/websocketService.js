@@ -51,3 +51,19 @@ export const subscribePortfolio = (userId, onMessage) => {
   });
 
 };
+
+export const subscribeOrderBook = (symbol, onMessage) => {
+
+  if (!stompClient || !stompClient.connected) {
+    return;
+  }
+
+  stompClient.subscribe(`/topic/orderbook/${symbol}`, (message) => {
+
+    const data = JSON.parse(message.body);
+
+    onMessage(data);
+
+  });
+
+};

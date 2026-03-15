@@ -1,39 +1,40 @@
-import StockTable from "../components/StockTable";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import StockTable from "../components/StockTable";
+import OrderBook from "../components/OrderBook";
 
 function Dashboard() {
 
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const handleLogout = () => {
+  const [selectedStock, setSelectedStock] = useState(null);
 
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        localStorage.removeItem("userId");
+  const handleLogout = () => {
 
-        navigate("/login");
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("userId");
 
-    };
+    navigate("/login");
+  };
 
-    return (
+  return (
 
-        <div>
+    <div>
 
-            <h1>Trading Dashboard</h1>
+      <h1>Trading Dashboard</h1>
 
-            <button onClick={() => navigate("/portfolio")}>
-                Portfolio
-            </button>
+      <button onClick={handleLogout}>Logout</button>
 
-            <button onClick={handleLogout}>
-                Logout
-            </button>
+      <StockTable setSelectedStock={setSelectedStock} />
 
-            <StockTable />
+      {selectedStock && (
+        <OrderBook symbol={selectedStock} />
+      )}
 
-        </div>
+    </div>
 
-    );
+  );
 
 }
 
