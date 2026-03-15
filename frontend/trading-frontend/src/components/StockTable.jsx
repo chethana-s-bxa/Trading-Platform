@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { getStocks } from "../services/stocksService";
+import { connectMarketSocket } from "../websocket/websocketService";
 
 function StockTable() {
 
   const [stocks, setStocks] = useState([]);
 
   useEffect(() => {
+
     fetchStocks();
+
+    connectMarketSocket(handlePriceUpdate);
+
   }, []);
 
   const fetchStocks = async () => {
@@ -21,6 +26,18 @@ function StockTable() {
       console.error("Error fetching stocks", error);
 
     }
+
+  };
+
+  const handlePriceUpdate = (update) => {
+
+    setStocks((prevStocks) =>
+      prevStocks.map((stock) =>
+        stock.symbol === update.symbol
+          ? { ...stock, price: update.price }
+          : stock
+      )
+    );
 
   };
 
