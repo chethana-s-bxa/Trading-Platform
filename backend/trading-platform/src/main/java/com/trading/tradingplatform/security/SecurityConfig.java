@@ -17,23 +17,42 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+
+                        // PUBLIC APIs
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/users/register").permitAll()
-//                        .requestMatchers("/api/v1/stocks/**").permitAll()
-                        // Swagger endpoints
+                        .requestMatchers("/ws-market/**").permitAll()
+
+                        // Swagger
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
+
+                        // ADMIN APIs
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+
+                        // USER + ADMIN APIs
+                        .requestMatchers("/api/v1/trade/**").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/v1/orders/**").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/v1/portfolio/**").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/v1/trades/**").hasAnyRole("USER","ADMIN")
+
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
-                ).sessionManagement(session ->
+                )
+
+                .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                )
+
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

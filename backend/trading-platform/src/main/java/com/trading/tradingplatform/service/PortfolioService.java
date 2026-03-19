@@ -3,6 +3,7 @@ package com.trading.tradingplatform.service;
 import com.trading.tradingplatform.entity.PortfolioHolding;
 import com.trading.tradingplatform.entity.Stock;
 import com.trading.tradingplatform.entity.User;
+import com.trading.tradingplatform.exception.StockNotFoundException;
 import com.trading.tradingplatform.repository.PortfolioHoldingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -153,7 +154,7 @@ public class PortfolioService {
 
         PortfolioHolding holding = portfolioHoldingRepository
                 .findByUserIdAndStockSymbol(user.getId(), stock.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Stock not owned"));
+                .orElseThrow(() -> new StockNotFoundException("Stock not owned"));
 
         int newQuantity = holding.getQuantity() - quantity;
 

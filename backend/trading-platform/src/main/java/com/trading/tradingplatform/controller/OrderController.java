@@ -1,10 +1,14 @@
 package com.trading.tradingplatform.controller;
 
+import com.trading.tradingplatform.dto.order.OrderBookResponse;
 import com.trading.tradingplatform.dto.order.OrderResponse;
 import com.trading.tradingplatform.dto.order.PlaceOrderRequest;
 import com.trading.tradingplatform.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +20,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
     @PostMapping("/buy")
     public OrderResponse placeBuyOrder(
@@ -23,9 +28,9 @@ public class OrderController {
             @Valid @RequestBody PlaceOrderRequest request
     ) {
 
-        String username = authentication.getName();
+        String email = authentication.getName();
 
-        return orderService.placeBuyOrder(username, request);
+        return orderService.placeBuyOrder(email, request);
     }
 
     @PostMapping("/sell")
@@ -34,17 +39,17 @@ public class OrderController {
             @Valid @RequestBody PlaceOrderRequest request
     ) {
 
-        String username = authentication.getName();
+        String email = authentication.getName();
 
-        return orderService.placeSellOrder(username, request);
+        return orderService.placeSellOrder(email, request);
     }
 
     @GetMapping("/user")
     public List<OrderResponse> getUserOrders(Authentication authentication) {
 
-        String username = authentication.getName();
+        String email = authentication.getName();
 
-        return orderService.getUserOrders(username);
+        return orderService.getUserOrders(email);
     }
 
     @DeleteMapping("/{orderId}")
@@ -56,5 +61,16 @@ public class OrderController {
         String username = authentication.getName();
 
         orderService.cancelOrder(orderId, username);
+    }
+
+    @GetMapping("/book/{symbol}")
+    public ResponseEntity<OrderBookResponse> getOrderBook(
+            @PathVariable String symbol
+    ) {
+
+        OrderBookResponse orderBook = orderService.getOrderBook(symbol);
+
+        return ResponseEntity.ok(orderBook);
+
     }
 }

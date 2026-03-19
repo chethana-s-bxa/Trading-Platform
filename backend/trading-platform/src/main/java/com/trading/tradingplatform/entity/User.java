@@ -1,8 +1,10 @@
 package com.trading.tradingplatform.entity;
 
 
+import com.trading.tradingplatform.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,6 +33,9 @@ public class User {
 
     @Column(nullable = false)
     private BigDecimal balance;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

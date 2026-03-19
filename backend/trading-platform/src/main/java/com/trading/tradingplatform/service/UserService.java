@@ -5,12 +5,16 @@ import com.trading.tradingplatform.dto.LoginResponse;
 import com.trading.tradingplatform.dto.UserRegistrationRequest;
 import com.trading.tradingplatform.dto.UserResponseDTO;
 import com.trading.tradingplatform.entity.User;
+import com.trading.tradingplatform.entity.enums.Role;
+import com.trading.tradingplatform.exception.InvalidCredentialsException;
+import com.trading.tradingplatform.exception.UserAlreadyExistsException;
 import com.trading.tradingplatform.repository.UserRepository;
 import com.trading.tradingplatform.security.JwtService;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 
 @Service
@@ -20,7 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     /**
      * Registers a new user in the system
      * after validating username and email uniqueness.
@@ -29,14 +33,21 @@ public class UserService {
      * @return UserResponseDTO containing user details excluding password
      */
     public UserResponseDTO registerUser(UserRegistrationRequest request){
+        logger.info("Attempting to register user with email: {}", request.getEmail());
+
         if(userRepository.existsByUsername(request.getUsername())){
-            throw new RuntimeException("Username already exists");
+            logger.warn("Registration failed - Username already exists: {}", request.getUsername());
+            throw new UserAlreadyExistsException("Username already exists");
         }
         if(userRepository.existsByEmail(request.getEmail())){
-            throw new RuntimeException("Email already exists");
+            logger.warn("Registration failed - Email already exists: {}", request.getEmail());
+            throw new UserAlreadyExistsException("Email already exists");
         }
+        User user = createUserFromRequest(request);
 
-        return convertUserToUserResponse(createUserFromRequest(request));
+        logger.info("User registration successful for username: {}", user.getUsername());
+
+        return convertUserToUserResponse(user);
     }
 
     /**
@@ -45,12 +56,16 @@ public class UserService {
      * @param request DTO containing username, email and password
      * @return the saved User entity
      */
-    public User createUserFromRequest(UserRegistrationRequest request){
+    private User createUserFromRequest(UserRegistrationRequest request){
+
         User user = new User();
+
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setBalance(BigDecimal.valueOf(1000.0));
+        user.setBalance(BigDecimal.valueOf(10000.0));   // if you are giving default balance
+
+        user.setRole(Role.USER);    // IMPORTANT
 
         return userRepository.save(user);
     }
@@ -79,14 +94,25 @@ public class UserService {
      * @throws RuntimeException if no user is found with the provided email
      */
     public LoginResponse loginUser(LoginRequest request){
+
+        logger.info("Login attempt for email: {}", request.getEmail());
+
         User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(()-> new RuntimeException("Email not found"));
+                .orElseThrow(() -> {
+                    logger.warn("Login failed - Email not found: {}", request.getEmail());
+                    return new UserAlreadyExistsException("Email not found");
+                });
 
         if(!passwordEncoder.matches(request.getPassword(), user.getPassword())){
-            throw new RuntimeException("Invalid login credentials");
+            logger.warn("Login failed - Invalid credentials for email: {}", request.getEmail());
+            throw new InvalidCredentialsException("Invalid login credentials");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
+        Role role = user.getRole() != null ? user.getRole(): Role.USER;
+
+        String token = jwtService.generateToken(user.getEmail(), role);
+
+        logger.info("Login successful for user ID: {}", user.getId());
 
         return LoginResponse.builder()
                 .id(user.getId())

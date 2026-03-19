@@ -6,6 +6,8 @@ import com.trading.tradingplatform.dto.trade.TradeResponse;
 import com.trading.tradingplatform.entity.PortfolioHolding;
 import com.trading.tradingplatform.entity.Stock;
 import com.trading.tradingplatform.entity.User;
+import com.trading.tradingplatform.entity.enums.MarketStatus;
+import com.trading.tradingplatform.exception.*;
 import com.trading.tradingplatform.repository.PortfolioHoldingRepository;
 import com.trading.tradingplatform.repository.StockRepository;
 import com.trading.tradingplatform.repository.UserRepository;
@@ -13,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -24,22 +28,27 @@ public class TradeService {
     private final StockRepository stockRepository;
     private final PortfolioHoldingRepository portfolioHoldingRepository;
     private final TradeHistoryService tradeHistoryService;
-
+    private final MarketStatusService marketStatusService;
+    private static final Logger logger = LoggerFactory.getLogger(TradeService.class);
     @Transactional
     public TradeResponse buyStock(BuyStockRequest request) {
 
+        validateMarketOpen();
+
         //  Get authenticated user
-        String username = SecurityContextHolder
+        String email = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
+        logger.info("Initiating BUY trade for user email: {}, stock: {}, quantity: {}", email, request.getSymbol(), request.getQuantity());
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+//        System.out.println(username);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         //  Find stock
         Stock stock = stockRepository.findBySymbol(request.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Stock not found"));
+                .orElseThrow(() -> new StockNotFoundException("Stock not found"));
 
         //  Get stock price
         BigDecimal stockPrice = stock.getPrice();
@@ -49,7 +58,8 @@ public class TradeService {
 
         //  Check user balance
         if (user.getBalance().compareTo( totalCost) < 0) {
-            throw new RuntimeException("Insufficient balance");
+            logger.warn("BUY failed - Insufficient balance for user email: {}", email);
+            throw new InsufficientBalanceException("Insufficient balance");
         }
 
         //  Deduct balance
@@ -81,10 +91,16 @@ public class TradeService {
             BigDecimal weightedPrice =
                     (oldPrice.multiply(BigDecimal.valueOf(oldQuantity))
                             .add(stockPrice.multiply(BigDecimal.valueOf(newQuantity))))
-                            .divide(BigDecimal.valueOf(oldQuantity + newQuantity));
+                            .divide(
+                                    BigDecimal.valueOf(oldQuantity + newQuantity),
+                                    2,
+                                    RoundingMode.HALF_UP
+                            );
 
             holding.setQuantity(oldQuantity + newQuantity);
             holding.setAveragePrice(weightedPrice);
+
+            logger.info("BUY successful for user email: {}, stock: {}, quantity: {}", email, request.getSymbol(), request.getQuantity());
         }
 
         portfolioHoldingRepository.save(holding);
@@ -109,27 +125,30 @@ public class TradeService {
     @Transactional
     public TradeResponse sellStock(SellStockRequest request) {
 
+        validateMarketOpen();
+
         // 1. Get authenticated user
-        String username = SecurityContextHolder
+        String email = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        logger.info("Initiating SELL trade for user email: {}, stock: {}, quantity: {}", email, request.getSymbol(), request.getQuantity());
 
-        // 2. Find stock
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+
         Stock stock = stockRepository.findBySymbol(request.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Stock not found"));
+                .orElseThrow(() -> new StockNotFoundException("Stock not found with symbol: " + request.getSymbol()));
 
         // 3. Find portfolio holding
         PortfolioHolding holding = portfolioHoldingRepository
                 .findByUserIdAndStockSymbol(user.getId(), stock.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Stock not owned by user"));
+                .orElseThrow(() -> new PortfolioStockNotFoundException("Stock not owned by user"));
 
         // 4. Check if user has enough shares
         if (holding.getQuantity() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient shares to sell");
+            throw new InsufficientStockException("Insufficient shares to sell");
         }
 
         // 5. Get stock price
@@ -163,6 +182,8 @@ public class TradeService {
                 stockPrice
         );
 
+        logger.info("SELL successful for user email: {}, stock: {}, quantity: {}", email, request.getSymbol(), request.getQuantity());
+
         // 9. Return response
         return new TradeResponse(
                 "Stock sold successfully",
@@ -171,5 +192,12 @@ public class TradeService {
                 stockPrice,
                 totalAmount
         );
+    }
+
+    private void validateMarketOpen() {
+        if (marketStatusService.getMarketStatus() == MarketStatus.CLOSED) {
+            logger.warn("Failed - Market is closed");
+            throw new MarketClosedException("Order Rejected: Market is closed");
+        }
     }
 }

@@ -5,6 +5,8 @@ import com.trading.tradingplatform.dto.UserResponseDTO;
 import com.trading.tradingplatform.entity.User;
 import com.trading.tradingplatform.service.UserService;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDTO> registerUser(@RequestBody UserRegistrationRequest request){

@@ -1,6 +1,7 @@
 package com.trading.tradingplatform.repository;
 
 import com.trading.tradingplatform.entity.User;
+import com.trading.tradingplatform.entity.enums.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -33,4 +34,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
     public Optional<User> findByEmail(String email);
 
     Optional<User> findByUsername(String username);
+
+    boolean existsByRole(Role role);
 }

@@ -27,4 +27,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             String symbol,
             OrderStatus status
     );
+
+    List<Order> findByStockSymbolAndTradeTypeAndOrderStatus(
+            String symbol,
+            TradeType tradeType,
+            OrderStatus orderStatus
+    );
 }

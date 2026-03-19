@@ -4,6 +4,7 @@ import com.trading.tradingplatform.dto.StockRequest;
 import com.trading.tradingplatform.entity.Stock;
 import com.trading.tradingplatform.service.StockService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -70,5 +71,17 @@ public class StockController {
         stockService.deleteStockBySymbol(symbol);
 
         return ResponseEntity.ok("Stock deleted successfully");
+    }
+
+    @GetMapping("/search")
+    public Page<Stock> searchStocks(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        return stockService.searchStocks(query, minPrice, maxPrice, page, size);
     }
 }

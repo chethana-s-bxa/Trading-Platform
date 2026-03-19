@@ -1,13 +1,17 @@
 package com.trading.tradingplatform.security;
 
+import com.trading.tradingplatform.entity.enums.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
 import java.security.Key;
 import java.util.Date;
-import io.jsonwebtoken.security.Keys;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class JwtService {
@@ -38,8 +42,13 @@ public class JwtService {
      * @param username the username or email of the authenticated user
      * @return generated JWT token
      */
-    public String generateToken(String username){
+    public String generateToken(String username, Role role){
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+
         return Jwts.builder()
+                .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
@@ -99,5 +108,9 @@ public class JwtService {
         String extractedUsername = extractUsername(token);
 
         return extractedUsername.equals(username) && !isTokenExpired(token);
+    }
+
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
     }
 }

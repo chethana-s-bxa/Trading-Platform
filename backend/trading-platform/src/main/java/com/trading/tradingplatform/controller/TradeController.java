@@ -7,6 +7,8 @@ import com.trading.tradingplatform.service.TradeHistoryService;
 import com.trading.tradingplatform.service.TradeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,7 +24,7 @@ public class TradeController {
     private final TradeService tradeService;
     private final TradeHistoryService tradeHistoryService;
     private final UserRepository userRepository;
-
+    private static final Logger logger = LoggerFactory.getLogger(TradeController.class);
     @PostMapping("/buy")
     public TradeResponse buyStock(@Valid @RequestBody BuyStockRequest request) {
         return tradeService.buyStock(request);
@@ -37,12 +39,12 @@ public class TradeController {
     @GetMapping("/history")
     public Page<TradeHistoryResponse> getTradeHistory(Pageable pageable) {
 
-        String username = SecurityContextHolder
+        String email = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
 
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return tradeHistoryService.getTradeHistory(user.getId(), pageable);
@@ -51,12 +53,12 @@ public class TradeController {
     @GetMapping("/pnl")
     public TradePnLResponse getProfitAndLoss() {
 
-        String username = SecurityContextHolder
+        String email = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
 
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return tradeHistoryService.getUserPnL(user.getId());
@@ -65,12 +67,12 @@ public class TradeController {
     @GetMapping("/summary")
     public TradeSummaryResponse getTradeSummary() {
 
-        String username = SecurityContextHolder
+        String email = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
 
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return tradeHistoryService.getTradeSummary(user.getId());

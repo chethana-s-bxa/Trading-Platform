@@ -6,17 +6,19 @@ import com.trading.tradingplatform.dto.order.PlaceOrderRequest;
 import com.trading.tradingplatform.entity.Order;
 import com.trading.tradingplatform.entity.Stock;
 import com.trading.tradingplatform.entity.User;
+import com.trading.tradingplatform.entity.enums.MarketStatus;
 import com.trading.tradingplatform.entity.enums.OrderStatus;
 import com.trading.tradingplatform.entity.enums.TradeType;
+import com.trading.tradingplatform.exception.*;
 import com.trading.tradingplatform.repository.OrderRepository;
 import com.trading.tradingplatform.repository.StockRepository;
 import com.trading.tradingplatform.repository.UserRepository;
 import com.trading.tradingplatform.websocket.MarketDataPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.trading.tradingplatform.websocket.MarketDataPublisher;
 import com.trading.tradingplatform.dto.order.OrderBookStreamMessage;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -30,14 +32,18 @@ public class OrderService {
     private final TradeHistoryService tradeHistoryService;
     private final PortfolioService portfolioService;
     private final MarketDataPublisher marketDataPublisher;
+    private final MarketStatusService marketStatusService;
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
-    public OrderResponse placeBuyOrder(String userName, PlaceOrderRequest request) {
+    public OrderResponse placeBuyOrder(String email, PlaceOrderRequest request) {
 
-        User user = userRepository.findByUsername(userName)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        validateMarketOpen();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
 
         Stock stock = stockRepository.findBySymbol(request.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Stock not found"));
+                .orElseThrow(() -> new StockNotFoundException("Stock not found with symbol: " + request.getSymbol()));
 
         Order order = Order.builder()
                 .user(user)
@@ -59,13 +65,15 @@ public class OrderService {
         return mapToResponse(savedOrder);
     }
 
-    public OrderResponse placeSellOrder(String userName, PlaceOrderRequest request) {
+    public OrderResponse placeSellOrder(String email, PlaceOrderRequest request) {
 
-        User user = userRepository.findByUsername(userName)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        validateMarketOpen();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
 
         Stock stock = stockRepository.findBySymbol(request.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Stock not found"));
+                .orElseThrow(() -> new StockNotFoundException("Stock not found with symbol: " + request.getSymbol()));
 
         Order order = Order.builder()
                 .user(user)
@@ -205,10 +213,11 @@ public class OrderService {
         }
     }
 
-    public List<OrderResponse> getUserOrders(String username) {
+    public List<OrderResponse> getUserOrders(String email) {
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+
 
         List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
 
@@ -253,15 +262,15 @@ public class OrderService {
     public void cancelOrder(Long orderId, String username) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
 
-        if (!order.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("You are not allowed to cancel this order");
+        if (!order.getUser().getEmail().equals(username)) {
+            throw new UnauthorizedActionException("You are not allowed to cancel this order");
         }
 
         if (order.getOrderStatus() == OrderStatus.FILLED ||
                 order.getOrderStatus() == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Order cannot be cancelled");
+            throw new OrderCancellationException("Order cannot be cancelled");
         }
 
         order.setOrderStatus(OrderStatus.CANCELLED);
@@ -308,5 +317,11 @@ public class OrderService {
                         .build();
 
         marketDataPublisher.broadcastOrderBook(message);
+    }
+
+    private void validateMarketOpen() {
+        if (marketStatusService.getMarketStatus() == MarketStatus.CLOSED) {
+            throw new MarketClosedException("Order Rejected: Market is closed");
+        }
     }
 }

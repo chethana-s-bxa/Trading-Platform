@@ -25,4 +25,10 @@ public interface TradeRepository extends JpaRepository<Trade, Long> {
     long countByUserId(Long userId);
 
     long countByUserIdAndTradeType(Long userId, TradeType tradeType);
+
+    List<Trade> findByUserUsername(String username);
+
+    List<Trade> findByStockSymbolAndUserUsername(String symbol, String username);
+
+    List<Trade> findByStockSymbol(String symbol);
 }

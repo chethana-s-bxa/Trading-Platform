@@ -2,10 +2,15 @@ package com.trading.tradingplatform.service;
 
 import com.trading.tradingplatform.dto.StockRequest;
 import com.trading.tradingplatform.entity.Stock;
+import com.trading.tradingplatform.exception.InvalidStockException;
+import com.trading.tradingplatform.exception.StockAlreadyExistsException;
+import com.trading.tradingplatform.exception.StockNotFoundException;
 import com.trading.tradingplatform.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,11 +51,11 @@ public class StockService {
     public Stock addStock(StockRequest request){
 
         if(request.getSymbol() == null){
-            throw new RuntimeException("Ticker symbol cannot be empty");
+            throw new InvalidStockException("Ticker symbol cannot be empty");
         }
 
         if(stockRepository.findBySymbol(request.getSymbol()).isPresent()){
-            throw new RuntimeException("Stock already exists with this symbol");
+            throw new StockAlreadyExistsException("Stock already exists with this symbol");
         }
 
         Stock stock =  Stock.builder()
@@ -75,7 +80,7 @@ public class StockService {
 
 
         Stock stock = stockRepository.findBySymbol(request.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Stock not found for this ticker"));
+                .orElseThrow(() -> new StockNotFoundException("Stock not found for this ticker"));
 
         if(request.getCompanyName() != null){
             stock.setCompanyName(request.getCompanyName());
@@ -98,9 +103,38 @@ public class StockService {
      */
     public void deleteStockBySymbol(String symbol){
         Stock stock = stockRepository.findBySymbol(symbol)
-                .orElseThrow(()->new RuntimeException("Stock not found for this ticker"));
+                .orElseThrow(()->new StockNotFoundException("Stock not found for this ticker"));
 
         stockRepository.deleteById(stock.getId());
 
+    }
+
+    public Page<Stock> searchStocks(
+            String query,
+            Double minPrice,
+            Double maxPrice,
+            int page,
+            int size
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        if (query != null && !query.isBlank()) {
+
+            return stockRepository
+                    .findBySymbolContainingIgnoreCaseOrCompanyNameContainingIgnoreCase(
+                            query,
+                            query,
+                            pageable
+                    );
+        }
+
+        if (minPrice != null && maxPrice != null) {
+
+            return stockRepository
+                    .findByPriceBetween(minPrice, maxPrice, pageable);
+        }
+
+        return stockRepository.findAll(pageable);
     }
 }
