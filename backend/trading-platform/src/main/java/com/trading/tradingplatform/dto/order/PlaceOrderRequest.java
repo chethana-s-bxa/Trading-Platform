@@ -3,13 +3,17 @@ package com.trading.tradingplatform.dto.order;
 import com.trading.tradingplatform.entity.enums.OrderCategory;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class PlaceOrderRequest {
 
     @NotNull

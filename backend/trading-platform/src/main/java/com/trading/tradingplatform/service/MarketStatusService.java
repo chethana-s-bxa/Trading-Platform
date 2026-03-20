@@ -22,6 +22,17 @@ public class MarketStatusService {
             return MarketStatus.OPEN;
         }
 
+
+
+        return MarketStatus.CLOSED;
+    }
+
+    public MarketStatus getMarketStatus(LocalTime currentTime) {
+
+        if (!currentTime.isBefore(MARKET_OPEN_TIME) && !currentTime.isAfter(MARKET_CLOSE_TIME)) {
+            return MarketStatus.OPEN;
+        }
+
         return MarketStatus.CLOSED;
     }
 }
